@@ -12,7 +12,7 @@ import { existsSync, readdirSync, statSync, mkdirSync, copyFileSync, readFileSyn
 import { join, dirname, relative, resolve, sep } from 'node:path'
 import { pathToFileURL, fileURLToPath } from 'node:url'
 import { dataDir } from './store.js'
-import { registerSecretField } from './config.js'
+import { registerSecretField, deepMerge } from './config.js'
 import { defineTool } from '../tools/tools.js'
 
 /** 扩展接口版本：只加不改。哪天不得不改已有的东西才升到 2，并在更新说明里写清楚怎么迁移。 */
@@ -191,6 +191,15 @@ export function scopeCoreForModule(core, id) {
   return new Proxy(core, {
     get(target, key, recv) {
       if (key === 'hub') return scopedHub
+      // 模块拿到的 core.setConfig 与 api.setConfig 同语义：传对象就深合并、传函数就整份换。
+      // 裸 setConfig 是整份写入，模块只传补丁时缺的字段会被 normalize 用默认值补齐，
+      // 把用户的账号设置洗成默认值（#467）。这里不包 writable：停用阶段正是要用它写配置。
+      if (key === 'setConfig') {
+        return (patch) => {
+          const current = typeof target.getConfig === 'function' ? target.getConfig() : {}
+          return target.setConfig(typeof patch === 'function' ? patch(current) : deepMerge(current, patch))
+        }
+      }
       return Reflect.get(target, key, recv)
     },
     getPrototypeOf() { return null }, // 摸原型拿回原始 hub 的路也堵死（三审 #177）
@@ -856,10 +865,3 @@ export function lazyProxy(get) {
   })
 }
 
-const isObj = (v) => v && typeof v === 'object' && !Array.isArray(v)
-function deepMerge(base, over) {
-  if (!isObj(over)) return over === undefined ? base : over
-  const out = { ...(isObj(base) ? base : {}) }
-  for (const [k, v] of Object.entries(over)) out[k] = isObj(v) && isObj(out[k]) ? deepMerge(out[k], v) : v
-  return out
-}

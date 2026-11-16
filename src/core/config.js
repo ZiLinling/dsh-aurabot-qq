@@ -279,7 +279,8 @@ export const DEFAULTS = {
 
 const isObj = (v) => v && typeof v === 'object' && !Array.isArray(v)
 
-function deepMerge(base, over) {
+/** 深合并补丁：只覆盖传入的字段，其余保持原值（api.setConfig 与 api.core.setConfig 共用这一份实现） */
+export function deepMerge(base, over) {
   if (!isObj(over)) return structuredClone(base)
   const out = structuredClone(base)
   for (const [k, v] of Object.entries(over)) {

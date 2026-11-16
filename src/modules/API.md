@@ -176,7 +176,7 @@ export default {
 | `http` | 写接口用的小工具：`body(req)` 读 JSON、`raw(req, 最大字节)` 读原始内容、`query(req)` 读网址参数、`send(res, 状态码, 内容, 类型)` |
 | `personas` | 人格：`list()` `read(id)` `current()` |
 | `modules` | 模块内核本身（`status()` `reload(id)` ……） |
-| `getConfig()` / `setConfig(cfg)` | 同 `api.config` / 整份替换配置 |
+| `getConfig()` / `setConfig(patch)` | 同 `api.config` / `api.setConfig`：传对象深合并，传函数 `(cfg) => 新cfg` 整份替换（模块停用阶段要写配置时用它） |
 | `logger` | 插件的日志器（`logger.child('名字')` 拿一个分类） |
 | `root` | 插件自己的安装目录 |
 
